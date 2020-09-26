@@ -34,9 +34,12 @@ class PoseController:
         may also be useful, look up its documentation
         """
         ########## Code starts here ##########
-        
+        rho = np.sqrt(x ** 2 + y ** 2)
+        alpha = wrapToPi(np.arctan2(y, x) - th + np.pi)
+        delta = wrapToPi(alpha + th)
+        V = self.k1 * rho * np.cos(alpha)
+        om = self.k2 * alpha + self.k1 * np.sinc(alpha / np.pi) * np.cos(alpha) * (alpha + self.k3 * delta)
         ########## Code ends here ##########
-
         # apply control limits
         V = np.clip(V, -self.V_max, self.V_max)
         om = np.clip(om, -self.om_max, self.om_max)

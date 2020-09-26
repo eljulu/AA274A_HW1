@@ -33,7 +33,21 @@ def compute_traj_coeffs(initial_state, final_state, tf):
     Hint: Use the np.linalg.solve function.
     """
     ########## Code starts here ##########
-
+    """
+    A: base function and derivatives of the base functions value at 
+    initial state and final state
+    
+    z: flat output values at initial and final state
+    """
+    A = np.array([[1, 0, 0, 0],
+                 [0, 1, 0, 0],
+                 [1, tf, tf**2, tf**3],
+                 [0, 1, 2*tf, 3*tf**2]])
+    zx = np.array([initial_state.x, initial_state.xd, final_state.x, final_state.xd])
+    zy = np.array([initial_state.y, initial_state.yd, final_state.y, final_state.yd])
+    coeffsx = np.linalg.solve(A, zx)
+    coeffsy = np.linalg.solve(A, zy)
+    coeffs = np.hstack((coeffsx, coeffsy))
     ########## Code ends here ##########
     return coeffs
 
@@ -50,7 +64,17 @@ def compute_traj(coeffs, tf, N):
     t = np.linspace(0,tf,N) # generate evenly spaced points from 0 to tf
     traj = np.zeros((N,7))
     ########## Code starts here ##########
-
+    for idx, ti in enumerate(t):
+        de_0 = np.array([1, ti, ti**2, ti**3])
+        de_1 = np.array([0, 1, 2*ti, 3*ti**2])
+        de_2 = np.array([0, 0, 2, 6*ti])
+        traj[idx][0] = np.matmul(de_0, coeffs[0:4].T)
+        traj[idx][1] = np.matmul(de_0, coeffs[4:].T)
+        traj[idx][3] = np.matmul(de_1, coeffs[0:4].T)
+        traj[idx][4] = np.matmul(de_1, coeffs[4:].T)
+        traj[idx][2] = np.arctan2(traj[idx][4], traj[idx][3]) # theta = atan2(ydot,xdot)
+        traj[idx][5] = np.matmul(de_2, coeffs[0:4].T)
+        traj[idx][6] = np.matmul(de_2, coeffs[4:].T)
     ########## Code ends here ##########
 
     return t, traj
@@ -64,9 +88,19 @@ def compute_controls(traj):
         om (np.array shape [N]) om at each point of traj
     """
     ########## Code starts here ##########
-
+    N = np.shape(traj)[0]
+    V = np.zeros(N)
+    om = np.zeros(N)
+    # [row] = [x, y, theta, xdot, ydot, xddot, yddot]
+    for idx, row in enumerate(traj):
+        V[idx] = np.sqrt(row[3]**2 + row[4]**2) # V = sqrt(xdot^2 + ydot^2)
+        # matrix J = [cos(theta), -Vsin(theta); sin(theta), Vcos(theta)]
+        J = np.array([[np.cos(row[2]), -V[idx]*np.sin(row[2])],
+                     [np.sin(row[2]), V[idx]*np.cos(row[2])]])
+        J_inv = np.linalg.inv(J)
+        u = np.matmul(J_inv, row[5:].T) # control input [a, om].T = J_inv * [xdd, ydd].T
+        om[idx] = u[1]
     ########## Code ends here ##########
-
     return V, om
 
 def compute_arc_length(V, t):
@@ -83,7 +117,7 @@ def compute_arc_length(V, t):
     """
     s = None
     ########## Code starts here ##########
-
+    s = cumtrapz(V, t, initial=0)
     ########## Code ends here ##########
     return s
 
@@ -104,7 +138,9 @@ def rescale_V(V, om, V_max, om_max):
     Hint: This should only take one or two lines.
     """
     ########## Code starts here ##########
-
+    V_tilde = np.zeros(np.shape(V))
+    for idx, Vi in enumerate(V):
+        V_tilde[idx] = min(Vi, V_max, Vi / abs(om[idx]) * om_max)
     ########## Code ends here ##########
     return V_tilde
 
@@ -121,7 +157,7 @@ def compute_tau(V_tilde, s):
     Hint: Use the function cumtrapz. This should take one line.
     """
     ########## Code starts here ##########
-
+    tau = cumtrapz(np.ones(np.shape(V_tilde))/V_tilde, s, initial = 0)
     ########## Code ends here ##########
     return tau
 
@@ -138,7 +174,7 @@ def rescale_om(V, om, V_tilde):
     Hint: This should take one line.
     """
     ########## Code starts here ##########
-
+    om_tilde = om / V * V_tilde
     ########## Code ends here ##########
     return om_tilde
 
