@@ -115,7 +115,7 @@ def main():
     """
     ########## Code starts here ##########
     global lam
-    lam = 0.2
+    lam = 0.25
     num_ODE = 7
     num_parameters = 0
     num_left_boundary_conditions = 3
@@ -164,12 +164,12 @@ if __name__ == '__main__':
     plt.title('Optimal Control Trajectory')
 
     plt.subplot(1, 2, 2)
-    plt.plot(t, V,linewidth=2)
+    plt.plot(t, V, linewidth=2)
     plt.plot(t, om,linewidth=2)
     plt.grid(True)
     plt.xlabel('Time [s]')
     plt.legend(['V [m/s]', '$\omega$ [rad/s]'], loc='best')
-    plt.title('Optimal control sequence')
+    plt.title("Optimal control sequence, $t_f$ = {} s, $\lambda$ = {}".format(t[-1], lam))
     plt.tight_layout()
     plt.savefig('plots/optimal_control.pdf')
     plt.show()
